@@ -96,6 +96,7 @@ exports.corsWhenDomainMatches = async (req, res, next) => {
   const domain = await Domain.findOne({
     where: { host: new URL(req.get("origin")).host },
   });
+
   if (domain) {
     cors({
       origin: req.get("origin"),
@@ -138,7 +139,6 @@ exports.getFollowersByUser = async (req, res) => {
       const followers = await user.getFollowers({
         attributes: ["id", "email", "nick"],
       });
-      console.log(followers);
 
       return res.json({
         code: 200,
