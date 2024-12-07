@@ -1,21 +1,16 @@
 const passport = require("passport");
 const User = require("../models/user");
-const bcrypt = require("bcrypt");
+const { join } = require("../services/auth");
 
 exports.join = async (req, res, next) => {
   const { nick, email, password } = req.body;
   try {
-    const exUser = await User.findOne({ where: { email } });
-    if (exUser) {
+    const result = await join(nick, email, password);
+    if (result == "exist user") {
       return res.redirect("/join?error=exist");
-    }
-    const hash = await bcrypt.hash(password, 12);
-    await User.create({
-      email,
-      nick,
-      password: hash,
-    });
-    return res.redirect("/");
+    } else if (result == "ok") {
+      return res.redirect("/");
+    } else throw Error("식별되지 않은 결과값");
   } catch (error) {
     console.error(error);
     next(error);
@@ -30,7 +25,7 @@ exports.login = (req, res, next) => {
       return next(authError);
     }
     if (!user) {
-      return res.redirect(`/?loginError=${info.message}`);
+      return res.redirect(`/?error=${info.message}`);
     }
 
     return req.login(user, (loginError) => {

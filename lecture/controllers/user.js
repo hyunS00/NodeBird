@@ -1,13 +1,13 @@
-const { User, Post } = require("../models");
+const { follow, unFollow, userPosts } = require("../services/user");
+
 exports.follow = async (req, res, next) => {
   try {
-    const user = await User.findOne({ where: { id: req.user.id } });
-    if (user) {
-      await user.addFollowing(parseInt(req.params.id, 10));
+    const result = await follow(req.user.id, req.params.id);
+    if (result == "ok") {
       res.send("success");
-    } else {
+    } else if (result == "no user") {
       res.status(404).send("no user");
-    }
+    } else throw Error("알 수 없는 응답");
   } catch (error) {
     console.error(error);
     next(error);
@@ -16,11 +16,10 @@ exports.follow = async (req, res, next) => {
 
 exports.unFollow = async (req, res, next) => {
   try {
-    const user = await User.findOne({ where: { id: req.user.id } });
-    if (user) {
-      await user.removeFollowing(parseInt(req.params.id, 10));
-      res.send("sucess");
-    } else {
+    const result = await unFollow(req.user.id, req.params.id);
+    if (result == "ok") {
+      res.send("success");
+    } else if (result == "no user") {
       res.status(404).send("no user");
     }
   } catch (error) {
@@ -31,15 +30,9 @@ exports.unFollow = async (req, res, next) => {
 
 exports.userPosts = async (req, res, next) => {
   try {
-    const posts = await Post.findAll({
-      where: { UserId: parseInt(req.params.id, 10) },
-      include: [{ model: User, attributes: ["id", "nick"] }],
-      oder: [["createdAt", "DESC"]],
-    });
-    if (posts) {
-      console.log(posts);
-
-      res.json({ twits: posts });
+    const result = await userPosts(req.params.id);
+    if (result.message == "ok") {
+      res.json(result.twits);
     }
   } catch (error) {
     console.error(error);
