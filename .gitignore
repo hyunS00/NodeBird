@@ -15,4 +15,5 @@ logs/
 tmp/
 uploads/
 *.db
-*/config/
+lecture-api/config/
+lecture-call/config/
