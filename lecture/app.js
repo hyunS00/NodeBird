@@ -6,9 +6,19 @@ const session = require("express-session"); // 세션
 const nunjucks = require("nunjucks"); // 렌더링
 const dotenv = require("dotenv"); // 설정파일
 const passport = require("passport");
+const redis = require("redis");
+const RedisStore = require("connect-redis")(session);
+const helmet = require("helmet");
+const hpp = require("hpp");
 const { sequelize } = require("./models");
 
 dotenv.config(); // process.env
+const redisClient = redis.createClient({
+  url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`,
+  password: process.env.REDIS_PASSWORD,
+  legacyMode: true,
+});
+redisClient.connect().catch(console.error);
 const pageRouter = require("./routes/page");
 const authRouter = require("./routes/auth");
 const postRouter = require("./routes/post");
@@ -20,6 +30,7 @@ const app = express();
 passportConfig();
 app.set("port", process.env.PORT || 8001);
 app.set("view engine", "html");
+
 nunjucks.configure("views", {
   express: app,
   watch: true,
@@ -34,23 +45,41 @@ sequelize
     console.error(err);
   });
 
-app.use(morgan("dev")); // 개발모드로 로깅
+if (process.env.NODE_ENV === "production") {
+  // app.enable('trust proxy') // 프록시 허용
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: false,
+    })
+  );
+  app.use(hpp());
+  app.use(morgan("combined"));
+} else {
+  app.use(morgan("dev")); // 개발모드로 로깅
+}
+
 app.use(express.static(path.join(__dirname, "public"))); // 정적폴더를 public으로 설정
 app.use("/img", express.static(path.join(__dirname, "uploads"))); // 정적폴더를 uploads 설정
 app.use(express.json()); // json 요청
 app.use(express.urlencoded({ extended: false })); // form 요청
 app.use(cookieParser(process.env.COOKIE_SECRET)); // 쿠키를 처리
-app.use(
-  session({
-    resave: false,
-    saveUninitialized: false,
-    secret: process.env.COOKIE_SECRET,
-    cookie: {
-      httpOnly: true,
-      secure: false,
-    },
-  })
-);
+const sessionOption = {
+  resave: false,
+  saveUninitialized: false,
+  secret: process.env.COOKIE_SECRET,
+  cookie: {
+    httpOnly: true,
+    secure: false,
+  },
+  store: new RedisStore({ client: redisClient }),
+};
+if (process.env.NODE_ENV === "production") {
+  session.proxy = true;
+  // sessionOption.cookie.secure = true; // https 일때 허용
+}
+app.use(session(sessionOption));
 app.use(passport.initialize()); // req.user, req.login, req.isAuthenticate, req.logout
 app.use(passport.session()); // connect.sid라는 이름으로 세션 쿠키가 브라우저로 전송
 // 브라우저 connect.sid = 54123t459256780
