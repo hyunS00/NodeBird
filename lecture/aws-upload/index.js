@@ -24,7 +24,7 @@ exports.handler = async (event, context, callback) => {
     const imageBuffer = Buffer.concat(buffers);
     console.log("get", imageBuffer.length);
     const resizedImage = await sharp(imageBuffer)
-      .resize(200, 200, { fit: inside })
+      .resize(200, 200, { fit: sharp.fit.inside })
       .toFormat(requiredFormat)
       .toBuffer();
 
