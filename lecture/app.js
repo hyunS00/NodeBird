@@ -7,7 +7,7 @@ const nunjucks = require("nunjucks"); // 렌더링
 const dotenv = require("dotenv"); // 설정파일
 const passport = require("passport");
 const redis = require("redis");
-const RedisStore = require("connect-redis")(session);
+const { RedisStore } = require("connect-redis");
 const helmet = require("helmet");
 const hpp = require("hpp");
 const { sequelize } = require("./models");
@@ -16,9 +16,12 @@ dotenv.config(); // process.env
 const redisClient = redis.createClient({
   url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`,
   password: process.env.REDIS_PASSWORD,
-  legacyMode: true,
+  legacyMode: false,
 });
-redisClient.connect().catch(console.error);
+redisClient
+  .connect()
+  .catch(console.error)
+  .finally(() => console.log("레디스 연결"));
 const pageRouter = require("./routes/page");
 const authRouter = require("./routes/auth");
 const postRouter = require("./routes/post");

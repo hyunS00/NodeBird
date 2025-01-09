@@ -11,6 +11,8 @@ const {
   unlikePost,
   deletePost,
 } = require("../controllers/post");
+const { S3Client } = require("@aws-sdk/client-s3");
+const multerS3 = require("multer-s3");
 
 try {
   fs.readdirSync("uploads");
@@ -18,14 +20,20 @@ try {
   fs.mkdirSync("uploads");
 }
 
+const s3 = new S3Client({
+  credentials: {
+    accessKeyId: process.env.S3_ACCESS_KEY_ID,
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
+  },
+  region: "ap-northeast-2",
+});
+
 const upload = multer({
-  storage: multer.diskStorage({
-    destination(req, file, cb) {
-      cb(null, "uploads/");
-    },
-    filename(req, file, cb) {
-      const ext = path.extname(file.originalname); // 이미지.png -> 이미지20241117.png
-      cb(null, path.basename(file.originalname, ext) + Date.now() + ext);
+  storage: multerS3({
+    s3,
+    bucket: "nodebird-lecture-tmp",
+    key(req, file, cb) {
+      cb(null, `original/${Date.now()}_${file.originalname}`);
     },
   }),
   limits: { fileSize: 20 * 1024 * 1024 },

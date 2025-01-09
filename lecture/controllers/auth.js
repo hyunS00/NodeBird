@@ -27,7 +27,6 @@ exports.login = (req, res, next) => {
     if (!user) {
       return res.redirect(`/?error=${info.message}`);
     }
-
     return req.login(user, (loginError) => {
       // 로그인 성공
       if (loginError) {
